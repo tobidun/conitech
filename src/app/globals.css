@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #111111;
+  --primary-orange: #FB7802;
+  --primary-orange-hover: #e06a00;
+  --font-custom: miui, system-ui, -apple-system, "system-ui", ".SFNSText-Regular", Helvetica, Arial, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand-orange: var(--primary-orange);
+  --font-sans: var(--font-custom);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-custom);
+}
+
