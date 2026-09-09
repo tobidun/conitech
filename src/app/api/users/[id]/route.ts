@@ -2,17 +2,16 @@ import { NextResponse } from "next/server";
 import { connectDatabase } from "@/lib/typeorm/connection";
 import { AppDataSource } from "@/lib/typeorm/data-source";
 import { User } from "@/entities/User";
-import { PaymentMethod } from "@/entities/PaymentMethod";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+  const userId = parseInt(id, 10);
+
   try {
     await connectDatabase();
-
-    const { id } = await params;
-    const userId = parseInt(id, 10);
 
     if (isNaN(userId)) {
       return NextResponse.json(
@@ -35,7 +34,8 @@ export async function GET(
     }
 
     return NextResponse.json({ user });
-  } catch {
+  } catch (error) {
+    console.error(`Failed to fetch user ${userId}:`, error);
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 }

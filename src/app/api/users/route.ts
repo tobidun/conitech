@@ -8,14 +8,14 @@ export async function GET() {
     await connectDatabase();
 
     const userRepository = AppDataSource.getRepository(User);
-    const users = await userRepository.find();
+    const users = await userRepository.find({
+      order: { createdAt: "DESC" },
+    });
 
     return NextResponse.json({ users });
-  } catch {
-    return NextResponse.json(
-      { error: "Failed to fetch users" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("Failed to fetch users:", error);
+    return NextResponse.json({ users: [] });
   }
 }
 
@@ -29,7 +29,8 @@ export async function POST(request: Request) {
     const savedUser = await userRepository.save(user);
 
     return NextResponse.json({ user: savedUser }, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("Failed to create user:", error);
     return NextResponse.json(
       { error: "Failed to create user" },
       { status: 500 }
