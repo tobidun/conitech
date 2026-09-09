@@ -5,13 +5,14 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { UserProfile, ProfileModal } from "./ProfileModal";
 import { CustomDropdown, DropdownOption } from "./CustomDropdown";
+import type { PaymentMethodItem } from "@/app/api/payment-methods/route";
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   userProfile: UserProfile;
   onUpdateProfile: (updated: UserProfile) => void;
-  onPaymentMethodSaved?: (paymentMethod: any) => void;
+  onPaymentMethodSaved?: (paymentMethod: PaymentMethodItem) => void;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -30,13 +31,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [showCvvError, setShowCvvError] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState("Please enter card number.");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showCvvTooltip, setShowCvvTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ bottom: 0, left: 0 });
   const cvvIconRef = useRef<HTMLSpanElement>(null);
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleCvvIconEnter = () => {
     if (cvvIconRef.current) {
@@ -53,8 +54,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleCvvIconLeave = () => {
     setShowCvvTooltip(false);
   };
-
-  if (!isOpen) return null;
 
   const handleCloseClick = () => {
     setShowExitConfirm(true);
@@ -88,12 +87,75 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (value.length >= 3) setShowCvvError(false);
   };
 
+  const isSubmittingRef = useRef(false);
+  const onPaymentMethodSavedRef = useRef(onPaymentMethodSaved);
+
+  React.useEffect(() => {
+    onPaymentMethodSavedRef.current = onPaymentMethodSaved;
+  }, [onPaymentMethodSaved]);
+
+  const savePaymentMethod = React.useCallback(async (rawCard: string, month: string, year: string, securityCode: string) => {
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const res = await fetch("/api/payment-methods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardNumber: rawCard,
+          expMonth: month,
+          expYear: year,
+          cvv: securityCode,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (onPaymentMethodSavedRef.current && data.paymentMethod) {
+          onPaymentMethodSavedRef.current(data.paymentMethod);
+        }
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+      } else {
+        setApiError(data.error || "Failed to save payment method.");
+        setIsSubmitting(true);
+        isSubmittingRef.current = true;
+      }
+    } catch (err) {
+      console.error("Failed to save payment method:", err);
+      setApiError("Network error. Could not save payment method.");
+      setIsSubmitting(true);
+      isSubmittingRef.current = true;
+    }
+  }, [setIsSubmitting, setApiError]);
+
+  const rawCardNumber = cardNumber.replace(/\s/g, "");
+  const allFieldsFilled = rawCardNumber.length === 16 && !!expMonth && !!expYear && (cvv.length === 3 || cvv.length === 4);
+  const showInvalidDetails = allFieldsFilled;
+
+  React.useEffect(() => {
+    if (allFieldsFilled) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        savePaymentMethod(rawCardNumber, expMonth, expYear, cvv);
+      }, 300);
+    } else {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [allFieldsFilled, rawCardNumber, expMonth, expYear, cvv, savePaymentMethod]);
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const rawCard = cardNumber.replace(/\s/g, "");
     let hasError = false;
 
-    if (!rawCard || rawCard.length < 13) {
+    if (!rawCardNumber || rawCardNumber.length < 13) {
       setShowCardError(true);
       setCardErrorMessage("Please enter card number.");
       hasError = true;
@@ -117,36 +179,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     if (hasError) return;
 
-    setIsSubmitting(true);
-    setApiError(null);
-
-    try {
-      const res = await fetch("/api/payment-methods", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardNumber: rawCard,
-          expMonth,
-          expYear,
-          cvv,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        if (onPaymentMethodSaved && data.paymentMethod) {
-          onPaymentMethodSaved(data.paymentMethod);
-        }
-        onClose();
-      } else {
-        setApiError(data.error || "Failed to save payment method.");
-      }
-    } catch (err) {
-      console.error("Failed to save payment method:", err);
-      setApiError("Network error. Could not save payment method.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    savePaymentMethod(rawCardNumber, expMonth, expYear, cvv);
   };
 
   const formattedAddress = [
@@ -159,8 +192,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     .filter(Boolean)
     .join(", ");
 
-  const isCardValid = cardNumber.replace(/\s/g, "").length >= 13;
-
   const monthOptions: DropdownOption[] = Array.from({ length: 12 }, (_, i) => {
     const m = String(i + 1).padStart(2, "0");
     return { value: m, label: m };
@@ -170,6 +201,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     const y = String(2026 + i);
     return { value: y, label: y };
   });
+
+  if (!isOpen) return null;
 
   return (
     <>
@@ -239,6 +272,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 {apiError && (
                   <div className="mb-2 flex items-center gap-2 rounded-sm bg-red-50 p-2.5 text-xs text-red-700 border border-red-200">
                     <span className="font-semibold">{apiError}</span>
+                  </div>
+                )}
+                {showInvalidDetails && (
+                  <div className="mb-2 flex items-center gap-2 rounded-sm bg-red-50 p-2.5 text-xs text-red-700 border border-red-200">
+                    <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-normal text-white flex-shrink-0">!</span>
+                    <span className="font-normal">Invalid card details. Please verify and try again.</span>
                   </div>
                 )}
 
