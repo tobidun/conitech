@@ -86,11 +86,16 @@ export async function POST(request: Request) {
     try {
       await connectDatabase();
       const userRepo = AppDataSource.getRepository(User);
-      let user = await userRepo.findOne({ where: {} });
+      const user = await userRepo.findOne({
+        where: {},
+        order: { createdAt: "DESC" },
+      });
 
       if (!user) {
-        user = userRepo.create({ fullName: "Default User" });
-        user = await userRepo.save(user);
+        return NextResponse.json(
+          { success: false, error: "No user found. Please update profile first." },
+          { status: 400 }
+        );
       }
 
       const pmRepo = AppDataSource.getRepository(PaymentMethod);

@@ -43,23 +43,26 @@ export async function GET() {
   return NextResponse.json({ success: true, profile: memoryProfile });
 }
 
+function stripEmpty(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(data).filter(
+      ([, value]) => value !== undefined && value !== null && value !== ""
+    )
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    memoryProfile = { ...memoryProfile, ...body };
+    const updates = stripEmpty(body);
+
+    memoryProfile = { ...memoryProfile, ...updates };
 
     try {
       await connectDatabase();
       const userRepository = AppDataSource.getRepository(User);
-      let user = await userRepository.findOne({ where: {} });
-
-      if (!user) {
-        user = userRepository.create(body as Partial<User>);
-      } else {
-        userRepository.merge(user, body);
-      }
-
-      const savedUser = await userRepository.save(user!);
+      const user = userRepository.create(updates as Partial<User>);
+      const savedUser = await userRepository.save(user);
       return NextResponse.json({
         success: true,
         message: "Profile updated successfully in database",

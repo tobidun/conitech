@@ -111,24 +111,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        if (onPaymentMethodSavedRef.current && data.paymentMethod) {
-          onPaymentMethodSavedRef.current(data.paymentMethod);
-        }
-        setIsSubmitting(true);
-        isSubmittingRef.current = true;
-      } else {
-        setApiError(data.error || "Failed to save payment method.");
-        setIsSubmitting(true);
-        isSubmittingRef.current = true;
+    const data = await res.json();
+    if (res.ok && data.success) {
+      if (onPaymentMethodSavedRef.current && data.paymentMethod) {
+        onPaymentMethodSavedRef.current(data.paymentMethod);
       }
-    } catch (err) {
-      console.error("Failed to save payment method:", err);
-      setApiError("Network error. Could not save payment method.");
-      setIsSubmitting(true);
-      isSubmittingRef.current = true;
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
+    } else {
+      setApiError(data.error || "Failed to save payment method.");
+      setIsSubmitting(false);
+      isSubmittingRef.current = false;
     }
+  } catch (err) {
+    console.error("Failed to save payment method:", err);
+    setApiError("Network error. Could not save payment method.");
+    setIsSubmitting(false);
+    isSubmittingRef.current = false;
+  }
   }, [setIsSubmitting, setApiError]);
 
   const rawCardNumber = cardNumber.replace(/\s/g, "");
