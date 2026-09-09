@@ -54,12 +54,12 @@ export async function POST(request: Request) {
       let user = await userRepository.findOne({ where: {} });
 
       if (!user) {
-        user = userRepository.create(body);
+        user = userRepository.create(body as Partial<User>);
       } else {
         userRepository.merge(user, body);
       }
 
-      const savedUser = await userRepository.save(user);
+      const savedUser = await userRepository.save(user!);
       return NextResponse.json({
         success: true,
         message: "Profile updated successfully in database",

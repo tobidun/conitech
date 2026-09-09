@@ -264,17 +264,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
       <div className="relative w-full max-w-[640px] max-h-[85vh] bg-white shadow-2xl rounded-sm text-gray-900 font-sans my-auto overflow-y-auto p-6 sm:p-8">
 
-        {/* X Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-700 hover:text-black transition z-10"
-          aria-label="Close"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
         {/* Header */}
         <div className="text-center pb-4">
           <h2 className="text-[20px] font-semibold text-gray-900 tracking-tight">Update Profile</h2>
@@ -376,13 +365,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-3 flex items-center justify-center gap-3">
-            <button
-              type="button" onClick={onClose}
-              className="w-full rounded-full border border-gray-400 py-3 px-6 text-sm font-semibold text-gray-800 hover:bg-gray-50 transition"
-            >
-              Cancel
-            </button>
+          <div className="pt-3 flex items-center justify-center">
             <button
               type="submit" disabled={isSubmitting}
               className="w-full rounded-full bg-[#FB7802] py-3 px-6 text-sm font-semibold text-white hover:bg-[#e06a00] transition shadow-md flex items-center justify-center gap-2 disabled:opacity-75"

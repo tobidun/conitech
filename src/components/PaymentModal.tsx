@@ -11,6 +11,7 @@ interface PaymentModalProps {
   onClose: () => void;
   userProfile: UserProfile;
   onUpdateProfile: (updated: UserProfile) => void;
+  onPaymentMethodSaved?: (paymentMethod: any) => void;
 }
 
 export const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -18,6 +19,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   userProfile,
   onUpdateProfile,
+  onPaymentMethodSaved,
 }) => {
   const [cardNumber, setCardNumber] = useState("");
   const [expMonth, setExpMonth] = useState("");
@@ -29,6 +31,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [cardErrorMessage, setCardErrorMessage] = useState("Please enter card number.");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showCvvTooltip, setShowCvvTooltip] = useState(false);
@@ -85,7 +88,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (value.length >= 3) setShowCvvError(false);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const rawCard = cardNumber.replace(/\s/g, "");
     let hasError = false;
@@ -115,10 +118,35 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     if (hasError) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    setApiError(null);
+
+    try {
+      const res = await fetch("/api/payment-methods", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardNumber: rawCard,
+          expMonth,
+          expYear,
+          cvv,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (onPaymentMethodSaved && data.paymentMethod) {
+          onPaymentMethodSaved(data.paymentMethod);
+        }
+        onClose();
+      } else {
+        setApiError(data.error || "Failed to save payment method.");
+      }
+    } catch (err) {
+      console.error("Failed to save payment method:", err);
+      setApiError("Network error. Could not save payment method.");
+    } finally {
       setIsSubmitting(false);
-      setIsSuccess(true);
-    }, 1000);
+    }
   };
 
   const formattedAddress = [
@@ -207,27 +235,12 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
-            {isSuccess ? (
-              <div className="py-8 text-center animate-fade-in">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mb-3">
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Card Saved Successfully</h3>
-                <p className="mt-1 text-sm text-gray-600">Your payment method has been added securely.</p>
-                <button
-                  onClick={() => {
-                    setIsSuccess(false);
-                    onClose();
-                  }}
-                  className="mt-6 rounded-full bg-[#FB7802] px-8 py-3 text-sm font-bold text-white hover:bg-[#e06a00] transition"
-                >
-                  Done
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleFormSubmit} className="mt-1 space-y-3">
+            <form onSubmit={handleFormSubmit} className="mt-1 space-y-3">
+                {apiError && (
+                  <div className="mb-2 flex items-center gap-2 rounded-sm bg-red-50 p-2.5 text-xs text-red-700 border border-red-200">
+                    <span className="font-semibold">{apiError}</span>
+                  </div>
+                )}
 
                 {/* Card Number Field */}
                 <div>
@@ -236,8 +249,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   </label>
                   <div
                     className={`relative flex items-center h-[42px] rounded-sm border bg-white px-3 transition ${showCardError
-                        ? "border-red-500"
-                        : "border-gray-400 focus-within:border-gray-600"
+                      ? "border-red-500"
+                      : "border-gray-400 focus-within:border-gray-600"
                       }`}
                   >
                     {/* Card Icon */}
@@ -358,7 +371,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     </button>
                   </div>
                   <p className="mt-1 text-sm text-gray-600 leading-snug font-normal">
-                    {formattedAddress || "Oluwatobi Abiodun, bosso minna Niger state, Nigeria, Bosso, Niger Nigeria"}
+                    {formattedAddress || "John Smith, 3 Greenwhich Ave, New York, NY, USA"}
                   </p>
                 </div>
 
@@ -389,7 +402,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     <svg className="h-5 w-5 text-[#0a8c2a] fill-current flex-shrink-0" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012 4.944v5c0 4.001 2.667 7.556 8 9.056 5.333-1.5 8-5.055 8-9.056v-5A11.954 11.954 0 0110 1.944zm3.707 6.353a1 1 0 00-1.414-1.414L9 10.086 7.707 8.793a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-sm font-medium leading-[21px] text-[#0a8c2a]">Conitech protects your card information</span>
+                    <span className="text-sm font-medium leading-[21px] text-[#0a8c2a]">Temu protects your card information</span>
                   </div>
 
                   <div className="flex items-start gap-2">
@@ -397,7 +410,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                     <span className="text-sm font-medium leading-[21px] text-[#757575]">
-                      Conitech follows the Payment Card Industry Data Security Standard (PCI DSS) when handling card data
+                      Temu follows the Payment Card Industry Data Security Standard (PCI DSS) when handling card data
                     </span>
                   </div>
 
@@ -424,7 +437,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                     <span className="text-sm font-medium leading-[21px] text-[#757575]">
-                      Conitech never sells your card information
+                      Temu never sells your card information
                     </span>
                   </div>
 
@@ -456,7 +469,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
                 </div>
               </form>
-            )}
           </div>{/* end scrollable body */}
 
           {/* Fixed bottom white spacer — always visible */}

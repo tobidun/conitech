@@ -1,5 +1,6 @@
 import { DataSource } from "typeorm";
 import { User } from "@/entities/User";
+import { PaymentMethod } from "@/entities/PaymentMethod";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -10,7 +11,7 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || "conitech",
   synchronize: process.env.NODE_ENV !== "production",
   logging: process.env.NODE_ENV !== "production",
-  entities: [User],
+  entities: [User, PaymentMethod],
   migrations: [],
   subscribers: [],
 });

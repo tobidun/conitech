@@ -1,13 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PaymentModal } from "@/components/PaymentModal";
 import { ProfileModal, UserProfile } from "@/components/ProfileModal";
 
+interface PaymentMethodItem {
+  id: number;
+  cardNumber: string;
+  cardLast4: string;
+  expMonth: string;
+  expYear: string;
+  cvv: string;
+  cardBrand?: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
 export default function Home() {
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(true);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(true);
   const [showProfilePrompt, setShowProfilePrompt] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>([]);
 
   const [userProfile, setUserProfile] = useState<UserProfile>({
     fullName: "",
@@ -20,15 +33,36 @@ export default function Home() {
     phoneCode: "+234",
   });
 
-  React.useEffect(() => {
+  const fetchPaymentMethods = async () => {
+    try {
+      const res = await fetch("/api/payment-methods");
+      if (!res.ok) return;
+      const text = await res.text();
+      if (!text) return;
+      const data = JSON.parse(text);
+      if (data?.success && Array.isArray(data.paymentMethods)) {
+        setPaymentMethods(data.paymentMethods);
+      }
+    } catch (err) {
+      console.error("Failed to load payment methods:", err);
+    }
+  };
+
+  useEffect(() => {
     fetch("/api/profile")
-      .then((res) => res.json())
+      .then(async (res) => {
+        if (!res.ok) return null;
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
+      })
       .then((data) => {
         if (data?.success && data?.profile) {
           setUserProfile((prev) => ({ ...prev, ...data.profile }));
         }
       })
       .catch((err) => console.error("Failed to load profile from backend:", err));
+
+    fetchPaymentMethods();
   }, []);
 
   const handleOpenPaymentFlow = () => {
@@ -45,57 +79,22 @@ export default function Home() {
     setIsProfileModalOpen(true);
   };
 
+  const handleDeletePaymentMethod = async (id: number) => {
+    try {
+      const res = await fetch(`/api/payment-methods?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPaymentMethods((prev) => prev.filter((item) => item.id !== id));
+      }
+    } catch (err) {
+      console.error("Failed to delete payment method:", err);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-neutral-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-xl bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 pb-6">
-          <div>
-            <span className="inline-block rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-[#FB7802] mb-2">
-              Payment & Profile Checkout
-            </span>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Account & Payment Settings</h1>
-          </div>
-        </div>
-
-        {/* Profile Card Summary */}
-        <div className="mt-6 rounded-2xl bg-neutral-50 p-5 border border-neutral-200">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-              <svg className="h-4 w-4 text-[#FB7802]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              User Profile & Billing Address
-            </h3>
-            <button
-              onClick={() => setIsProfileModalOpen(true)}
-              className="text-xs font-bold text-[#FB7802] hover:underline"
-            >
-              Edit Profile
-            </button>
-          </div>
-
-          <div className="space-y-1 text-xs text-gray-600">
-            <p><span className="font-semibold text-gray-800">Name:</span> {userProfile.fullName || "Not set"}</p>
-            <p><span className="font-semibold text-gray-800">Address:</span> {userProfile.streetAddress}, {userProfile.city}, {userProfile.state}, {userProfile.country}</p>
-            <p><span className="font-semibold text-gray-800">Phone:</span> {userProfile.phone || "Not set"}</p>
-          </div>
-        </div>
-
-        {/* Action Trigger */}
-        <div className="mt-8 flex flex-col gap-3">
-          <button
-            onClick={handleOpenPaymentFlow}
-            className="w-full rounded-full bg-[#FB7802] py-4 px-6 text-base font-bold text-white hover:bg-[#e06a00] active:scale-[0.98] transition shadow-lg flex items-center justify-center gap-2"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span>Add New Payment Method</span>
-          </button>
-        </div>
-      </div>
+    <main className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
 
       {/* Required Profile Update Prompt */}
       {showProfilePrompt && (
@@ -134,6 +133,9 @@ export default function Home() {
         onClose={() => setIsPaymentModalOpen(false)}
         userProfile={userProfile}
         onUpdateProfile={(updated) => setUserProfile(updated)}
+        onPaymentMethodSaved={(newMethod) => {
+          setPaymentMethods((prev) => [newMethod, ...prev]);
+        }}
       />
 
       {/* Standalone Profile Modal */}

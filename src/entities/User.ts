@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
+import type { PaymentMethod } from "./PaymentMethod";
 
 @Entity()
 export class User {
@@ -28,6 +29,9 @@ export class User {
 
   @Column({ nullable: true })
   phoneCode?: string;
+
+  @OneToMany("PaymentMethod", (paymentMethod: any) => paymentMethod.user)
+  paymentMethods?: PaymentMethod[];
 
   @CreateDateColumn()
   createdAt!: Date;
