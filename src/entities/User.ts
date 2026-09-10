@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from "typeorm";
-import { PaymentMethod } from "./PaymentMethod";
+import type { PaymentMethod } from "./PaymentMethod";
 
-@Entity()
+@Entity("User")
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -30,7 +30,7 @@ export class User {
   @Column({ nullable: true })
   phoneCode?: string;
 
-  @OneToMany(() => PaymentMethod, (paymentMethod: PaymentMethod) => paymentMethod.user)
+  @OneToMany("PaymentMethod", (paymentMethod: any) => paymentMethod.user)
   paymentMethods?: PaymentMethod[];
 
   @CreateDateColumn()

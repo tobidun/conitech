@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
-import { User } from "./User";
+import type { User } from "./User";
 
-@Entity()
+@Entity("PaymentMethod")
 export class PaymentMethod {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -9,7 +9,7 @@ export class PaymentMethod {
   @Column({ nullable: true })
   userId?: number;
 
-  @ManyToOne(() => User, (user) => user.paymentMethods, { onDelete: "CASCADE", nullable: true })
+  @ManyToOne("User", (user: any) => user.paymentMethods, { onDelete: "CASCADE", nullable: true })
   @JoinColumn({ name: "userId" })
   user?: User;
 
