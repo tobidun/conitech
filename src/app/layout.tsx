@@ -13,9 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.temuonline.store"),
+
   title: "Temu | Discover Deals & Save on Everything",
+
   description:
     "Temu offers over a million products at up to 90% off. Shop trending items, home goods, fashion, electronics, and more. Free shipping on eligible orders.",
+
   keywords: [
     "Temu",
     "shopping",
@@ -26,30 +30,33 @@ export const metadata: Metadata = {
     "home",
     "gifts",
   ],
+
   authors: [{ name: "Temu" }],
   creator: "Temu",
   publisher: "Temu",
-  metadataBase: new URL("https://www.temu.com"),
+
   alternates: {
-    canonical: "https://www.temu.com",
+    canonical: "https://www.temuonline.store",
   },
+
   openGraph: {
     title: "Temu | Discover Deals & Save on Everything",
     description:
       "Temu offers over a million products at up to 90% off. Shop trending items, home goods, fashion, electronics, and more.",
-    url: "https://www.temu.com",
+    url: "https://www.temuonline.store",
     siteName: "Temu",
     locale: "en_US",
     type: "website",
     images: [
       {
-        url: "/temu-og.svg",
+        url: "/temu-og.png",
         width: 1200,
         height: 630,
         alt: "Temu - Discover Deals & Save",
       },
     ],
   },
+
   twitter: {
     card: "summary_large_image",
     title: "Temu | Discover Deals & Save on Everything",
@@ -57,19 +64,24 @@ export const metadata: Metadata = {
       "Temu offers over a million products at up to 90% off. Shop trending items, home goods, fashion, electronics, and more.",
     site: "@temu",
     creator: "@temu",
-    images: ["/temu-og.svg"],
+    images: ["/temu-og.png"],
   },
+
   themeColor: "#FB7802",
   colorScheme: "light",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
