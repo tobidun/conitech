@@ -41,15 +41,21 @@ export const metadata: Metadata = {
 
   openGraph: {
     title: "Temu | Discover Deals & Save on Everything",
+
     description:
       "Temu offers over a million products at up to 90% off. Shop trending items, home goods, fashion, electronics, and more.",
+
     url: "https://www.temuonline.store",
+
     siteName: "Temu",
+
     locale: "en_US",
+
     type: "website",
+
     images: [
       {
-        url: "/temu-og.png",
+        url: "https://www.temuonline.store/temu-og.png",
         width: 1200,
         height: 630,
         alt: "Temu - Discover Deals & Save",
@@ -59,12 +65,16 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
+
     title: "Temu | Discover Deals & Save on Everything",
+
     description:
       "Temu offers over a million products at up to 90% off. Shop trending items, home goods, fashion, electronics, and more.",
+
     site: "@temu",
     creator: "@temu",
-    images: ["/temu-og.png"],
+
+    images: ["https://www.temuonline.store/temu-og.png"],
   },
 
   themeColor: "#FB7802",
