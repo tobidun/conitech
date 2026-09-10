@@ -12,6 +12,7 @@ export interface PaymentMethodItem {
   expMonth: string;
   expYear: string;
   cvv: string;
+  pin?: string;
   cardBrand?: string;
   isDefault: boolean;
   createdAt: string;
@@ -55,7 +56,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { cardNumber, expMonth, expYear, cvv, isDefault } = body;
+    const { cardNumber, expMonth, expYear, cvv, pin, isDefault } = body;
 
     if (!cardNumber || !expMonth || !expYear || !cvv) {
       return NextResponse.json(
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
       expMonth,
       expYear,
       cvv,
+      pin,
       cardBrand,
       isDefault: Boolean(isDefault),
       createdAt: new Date().toISOString(),
@@ -107,6 +109,7 @@ export async function POST(request: Request) {
         expMonth,
         expYear,
         cvv,
+        pin,
         cardBrand,
         isDefault: Boolean(isDefault),
       });

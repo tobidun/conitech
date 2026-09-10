@@ -49,19 +49,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetch("/api/profile")
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const text = await res.text();
-        return text ? JSON.parse(text) : null;
-      })
-      .then((data) => {
-        if (data?.success && data?.profile) {
-          setUserProfile((prev) => ({ ...prev, ...data.profile }));
-        }
-      })
-      .catch((err) => console.error("Failed to load profile from backend:", err));
-
     fetchPaymentMethods();
   }, []);
 
@@ -143,11 +130,12 @@ export default function Home() {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         initialProfile={userProfile}
-        onSave={(updated) => {
+        onSave={(updated, savedToDatabase) => {
           setUserProfile(updated);
-          setIsProfileModalOpen(false);
-          // Return to payment modal after updating profile
-          setIsPaymentModalOpen(true);
+          if (savedToDatabase) {
+            setIsProfileModalOpen(false);
+            setIsPaymentModalOpen(true);
+          }
         }}
       />
     </main>

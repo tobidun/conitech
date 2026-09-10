@@ -65,14 +65,16 @@ export async function POST(request: Request) {
       const savedUser = await userRepository.save(user);
       return NextResponse.json({
         success: true,
+        savedToDatabase: true,
         message: "Profile updated successfully in database",
         profile: savedUser,
       });
     } catch (dbError) {
       console.warn("Database save failed, using memory state:", dbError);
       return NextResponse.json({
-        success: true,
-        message: "Profile updated successfully (in-memory mode)",
+        success: false,
+        savedToDatabase: false,
+        error: "Failed to save profile to database",
         profile: memoryProfile,
       });
     }

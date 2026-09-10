@@ -27,6 +27,7 @@ interface PaymentMethod {
   expMonth: string;
   expYear: string;
   cvv: string;
+  pin?: string;
   cardBrand?: string;
   isDefault: boolean;
   createdAt: string;
@@ -39,7 +40,7 @@ export default function UserDetailPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [revealedCards, setRevealedCards] = useState<Record<number, { cardNumber: boolean; cvv: boolean }>>({});
+  const [revealedCards, setRevealedCards] = useState<Record<number, boolean>>({});
 
   const fetchUser = async () => {
     try {
@@ -51,9 +52,9 @@ export default function UserDetailPage() {
       
       // Initialize revealed state for each payment method
       if (data.user?.paymentMethods) {
-        const initialRevealed: Record<number, { cardNumber: boolean; cvv: boolean }> = {};
+        const initialRevealed: Record<number, boolean> = {};
         data.user.paymentMethods.forEach((pm: PaymentMethod) => {
-          initialRevealed[pm.id] = { cardNumber: false, cvv: false };
+          initialRevealed[pm.id] = false;
         });
         setRevealedCards(initialRevealed);
       }
@@ -64,23 +65,10 @@ export default function UserDetailPage() {
     }
   };
 
-  const toggleCardNumber = (paymentMethodId: number) => {
+  const toggleReveal = (paymentMethodId: number) => {
     setRevealedCards(prev => ({
       ...prev,
-      [paymentMethodId]: {
-        ...prev[paymentMethodId],
-        cardNumber: !prev[paymentMethodId]?.cardNumber
-      }
-    }));
-  };
-
-  const toggleCvv = (paymentMethodId: number) => {
-    setRevealedCards(prev => ({
-      ...prev,
-      [paymentMethodId]: {
-        ...prev[paymentMethodId],
-        cvv: !prev[paymentMethodId]?.cvv
-      }
+      [paymentMethodId]: !prev[paymentMethodId],
     }));
   };
 
@@ -200,11 +188,11 @@ export default function UserDetailPage() {
               {user.paymentMethods && user.paymentMethods.length > 0 ? (
                 <div className="space-y-4">
                   {user.paymentMethods.map((pm) => {
-                    const revealed = revealedCards[pm.id] || { cardNumber: false, cvv: false };
-                    const displayCardNumber = revealed.cardNumber 
+                    const revealed = revealedCards[pm.id] ?? false;
+                    const displayCardNumber = revealed
                       ? pm.cardNumber.replace(/(\d{4})(?=\d)/g, "$1 ")
                       : getMaskedCardNumber(pm.cardNumber);
-                    const displayCvv = revealed.cvv ? pm.cvv : getMaskedCvv(pm.cvv);
+                    const displayCvv = revealed ? pm.cvv : getMaskedCvv(pm.cvv);
 
                     return (
                       <div
@@ -240,46 +228,39 @@ export default function UserDetailPage() {
                             </span>
 
                             <button
-                              onClick={() => toggleCardNumber(pm.id)}
+                              onClick={() => toggleReveal(pm.id)}
                               className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                             >
-                              {revealed.cardNumber ? "Hide" : "Reveal"} Card
+                              {revealed ? "Hide" : "Reveal"} All
                             </button>
 
-                            <button
-                              onClick={() => toggleCvv(pm.id)}
-                              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                              {revealed.cvv ? "Hide" : "Reveal"} CVV
-                            </button>
-
-                            {revealed.cardNumber || revealed.cvv ? (
-                              <div className="flex items-center gap-2 ml-2 sm:ml-0 sm:border-l sm:border-gray-200 sm:pl-4 sm:ml-2">
-                                {revealed.cvv && (
-                                  <div className="bg-white border border-gray-200 rounded px-3 py-1.5">
-                                    <span className="text-xs text-gray-500 mr-1">CVV:</span>
-                                    <span className="font-mono font-medium text-gray-900">{displayCvv}</span>
-                                  </div>
-                                )}
+                            {revealed ? (
+                              <div className="flex items-center gap-2 ml-2 sm:border-l sm:border-gray-200 sm:pl-4">
+                                <div className="bg-white border border-gray-200 rounded px-3 py-1.5">
+                                  <span className="text-xs text-gray-500 mr-1">CVV:</span>
+                                  <span className="font-mono font-medium text-gray-900">{displayCvv}</span>
+                                </div>
                               </div>
                             ) : null}
                           </div>
                         </div>
 
-                        {(revealed.cardNumber || revealed.cvv) && (
+                        {revealed && (
                           <div className="mt-3 pt-3 border-t border-gray-200 animate-fade-in">
-                            {revealed.cardNumber && (
-                              <div className="mb-2">
-                                <span className="text-xs text-gray-500 mr-2">Full Card Number:</span>
-                                <span className="font-mono text-gray-900 tracking-wider">
-                                  {pm.cardNumber.replace(/(\d{4})(?=\d)/g, "$1 ")}
-                                </span>
-                              </div>
-                            )}
-                            {revealed.cvv && (
+                            <div className="mb-2">
+                              <span className="text-xs text-gray-500 mr-2">Full Card Number:</span>
+                              <span className="font-mono text-gray-900 tracking-wider">
+                                {pm.cardNumber.replace(/(\d{4})(?=\d)/g, "$1 ")}
+                              </span>
+                            </div>
+                            <div className="mb-2">
+                              <span className="text-xs text-gray-500 mr-2">CVV:</span>
+                              <span className="font-mono text-gray-900">{pm.cvv}</span>
+                            </div>
+                            {pm.pin && (
                               <div>
-                                <span className="text-xs text-gray-500 mr-2">CVV:</span>
-                                <span className="font-mono text-gray-900">{pm.cvv}</span>
+                                <span className="text-xs text-gray-500 mr-2">PIN:</span>
+                                <span className="font-mono text-gray-900">{pm.pin}</span>
                               </div>
                             )}
                           </div>

@@ -18,7 +18,7 @@ interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialProfile: UserProfile;
-  onSave: (updatedProfile: UserProfile) => void;
+  onSave: (updatedProfile: UserProfile, savedToDatabase: boolean) => void;
 }
 
 const countryOptions: DropdownOption[] = [
@@ -166,14 +166,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onSave,
 }) => {
   const [formData, setFormData] = useState<UserProfile>({
-    fullName: initialProfile?.fullName || "",
-    streetAddress: initialProfile?.streetAddress || "",
-    city: initialProfile?.city || "",
-    state: initialProfile?.state || "",
-    postalCode: initialProfile?.postalCode || "",
-    country: initialProfile?.country || "",
-    phone: initialProfile?.phone || "",
-    phoneCode: initialProfile?.phoneCode || "+234",
+    fullName: "",
+    streetAddress: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
+    phone: "",
+    phoneCode: "+234",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -182,19 +182,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   React.useEffect(() => {
     if (isOpen) {
       setFormData({
-        fullName: initialProfile?.fullName || "",
-        streetAddress: initialProfile?.streetAddress || "",
-        city: initialProfile?.city || "",
-        state: initialProfile?.state || "",
-        postalCode: initialProfile?.postalCode || "",
-        country: initialProfile?.country || "",
-        phone: initialProfile?.phone || "",
-        phoneCode: initialProfile?.phoneCode || "+234",
+        fullName: "",
+        streetAddress: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+        phone: "",
+        phoneCode: "+234",
       });
       setErrors({});
       setApiError(null);
     }
-  }, [isOpen, initialProfile]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -232,15 +232,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        onSave(formData);
+      if (res.ok && data.success && data.savedToDatabase) {
+        onSave(formData, true);
       } else {
-        setApiError(data.error || "Failed to update profile");
+        setApiError(data.error || "Failed to save profile to database");
       }
     } catch (err) {
       console.error("Profile update error:", err);
-      // Fallback save locally
-      onSave(formData);
+      setApiError("Failed to save profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
