@@ -19,6 +19,7 @@ interface ProfileModalProps {
   onClose: () => void;
   initialProfile: UserProfile;
   onSave: (updatedProfile: UserProfile, savedToDatabase: boolean) => void;
+  canClose?: boolean;
 }
 
 const countryOptions: DropdownOption[] = [
@@ -164,36 +165,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onClose,
   initialProfile,
   onSave,
+  canClose = true,
 }) => {
-  const [formData, setFormData] = useState<UserProfile>({
-    fullName: "",
-    streetAddress: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "",
-    phone: "",
-    phoneCode: "+234",
-  });
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [formData, setFormData] = useState<UserProfile>(initialProfile);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
   React.useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        fullName: "",
-        streetAddress: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "",
-        phone: "",
-        phoneCode: "+234",
-      });
-      setErrors({});
-      setApiError(null);
-    }
+    const dialog = dialogRef.current;
+    if (isOpen && dialog && !dialog.open) dialog.showModal();
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -251,7 +233,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       : "border-gray-300 focus:border-[#FB7802]"
     }`;
 
-  const ErrorMsg = ({ field }: { field: string }) =>
+  const renderErrorMsg = (field: string) =>
     errors[field] ? (
       <div className="mt-1 flex items-center gap-1 text-xs font-normal text-red-500">
         <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] text-white flex-shrink-0">!</span>
@@ -260,12 +242,35 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     ) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-fade-in">
-      <div className="relative w-full max-w-[640px] max-h-[85vh] bg-white shadow-2xl rounded-sm text-gray-900 font-sans my-auto overflow-y-auto p-6 sm:p-8">
+    <dialog
+      ref={dialogRef}
+      className="profile-dialog animate-fade-in"
+      aria-labelledby="profile-modal-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (canClose) onClose();
+      }}
+      onClick={(event) => {
+        if (canClose && event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="relative max-h-[85vh] w-full overflow-y-auto rounded-sm bg-white p-6 font-sans text-gray-900 shadow-2xl sm:p-8">
+        {canClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-3 top-3 rounded-full p-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+            aria-label="Close profile dialog"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
 
         {/* Header */}
         <div className="text-center pb-4">
-          <h2 className="text-[20px] font-semibold text-gray-900 tracking-tight">Update Profile</h2>
+          <h2 id="profile-modal-title" className="text-[20px] font-semibold text-gray-900 tracking-tight">Update Profile</h2>
           <p className="mt-1 text-[13px] text-gray-500 font-medium">Billing &amp; contact information</p>
         </div>
 
@@ -293,7 +298,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               onChange={handleInputChange} placeholder="e.g. John Smith"
               className={inputClass("fullName")}
             />
-            <ErrorMsg field="fullName" />
+            {renderErrorMsg("fullName")}
           </div>
 
           {/* Street Address */}
@@ -304,7 +309,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               onChange={handleInputChange} placeholder="e.g. 3 Greenwich Ave, New York, NY"
               className={inputClass("streetAddress")}
             />
-            <ErrorMsg field="streetAddress" />
+            {renderErrorMsg("streetAddress")}
           </div>
 
           {/* City & State */}
@@ -316,7 +321,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 onChange={handleInputChange} placeholder="e.g. New York"
                 className={inputClass("city")}
               />
-              <ErrorMsg field="city" />
+              {renderErrorMsg("city")}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1">* State / Province</label>
@@ -325,7 +330,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 onChange={handleInputChange} placeholder="e.g. New York"
                 className={inputClass("state")}
               />
-              <ErrorMsg field="state" />
+              {renderErrorMsg("state")}
             </div>
           </div>
 
@@ -340,7 +345,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 placeholder="Select country"
                 hasError={!!errors.country}
               />
-              <ErrorMsg field="country" />
+              {renderErrorMsg("country")}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-1">Postal Code</label>
@@ -382,6 +387,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 };
